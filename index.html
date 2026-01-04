@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NPC 数值动态模拟系统</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Local Styles -->
+    <link rel="stylesheet" href="src/css/style.css">
+</head>
+<body>
+
+<div id="app" class="container-fluid" @mouseup="handleMouseUp">
+    <div class="row">
+        <!-- Left Sidebar -->
+        <div class="col-md-2 sidebar">
+            <h4>控制面板</h4>
+            <hr>
+            
+            <div class="mb-3">
+                <label>当前日期: 第 {{ currentDay }} 天</label>
+                <button class="btn btn-warning btn-block" @click="nextDay">前进一天</button>
+            </div>
+
+            <div class="section-title">数据管理</div>
+            <div class="mb-2">
+                <label class="form-label">导入Excel（按文件名识别表格）</label>
+                <input type="file" class="form-control" @change="importExcel" accept=".xlsx, .xls">
+            </div>
+            <button class="btn btn-secondary btn-block" @click="exportExcel">导出当前页签Excel</button>
+            
+            <div class="section-title">批量操作</div>
+            <div class="mb-2">
+                <button class="btn btn-outline-primary btn-block" @click="importAllExcel">批量导入（选择文件夹）</button>
+            </div>
+            <button class="btn btn-outline-secondary btn-block" @click="exportAllExcel">导出所有表格</button>
+            <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" v-model="exportWithTimestamp" id="timestampCheck">
+                <label class="form-check-label" for="timestampCheck">导出时添加时间标记</label>
+            </div>
+            <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" v-model="exportWithPath" id="pathCheck">
+                <label class="form-check-label" for="pathCheck">导出时指定保存路径</label>
+            </div>
+            
+            <div class="section-title">游戏设置</div>
+            <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" v-model="infiniteMoney" id="infiniteMoneyCheck">
+                <label class="form-check-label" for="infiniteMoneyCheck">无限金钱</label>
+            </div>
+            
+            <div class="section-title">日志</div>
+            <div class="log-container">
+                <div class="log-header">
+                    <span>执行日志</span>
+                    <button class="btn btn-sm btn-outline-danger" @click="clearLogs">清空</button>
+                </div>
+                <div class="log-messages" ref="logMessagesContainer">
+                    <div v-if="logMessages.length === 0" class="log-empty">暂无日志</div>
+                    <div v-for="(log, index) in logMessages" :key="index" class="log-item">
+                        <span class="log-time">{{ log.time }}</span>
+                        <span class="log-text">{{ log.text }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Main Content -->
+        <div class="col-md-10 main-content">
+            <!-- Main Navigation Tabs -->
+            <ul class="nav nav-tabs mb-0">
+                <li class="nav-item" v-for="(tab, key) in mainTabs" :key="key">
+                    <a class="nav-link" :class="{ active: activeMainTab === key }" @click="currentTab = key">{{ tab.name }}</a>
+                </li>
+            </ul>
+            
+            <!-- Sub Navigation Tabs -->
+            <ul class="nav nav-tabs nav-tabs-sub mb-3" v-if="hasSubTabs">
+                <li class="nav-item" v-for="(tab, key) in subTabs" :key="key">
+                    <a class="nav-link" :class="{ active: currentTab === key }" @click="currentTab = key">{{ tab.name }}</a>
+                </li>
+            </ul>
+            <div class="mb-3" v-else></div>
+
+            <!-- Map Editor -->
+            <div class="map-editor-container" v-if="isMapTab">
+                <!-- Map Grid -->
+                <div class="map-wrapper">
+                    <div class="map-grid-container" :style="getZoomStyle()">
+                        <!-- Base Map Grid -->
+                        <div class="map-grid" 
+                             :class="{ 'map-grid-passthrough': mapEditMode === 'road' || mapEditMode === 'plan' }"
+                             @mouseleave="handleMouseUp" @mouseup="handleMouseUp">
+                            <template v-for="(row, y) in mapData" :key="y">
+                                <div v-for="(cell, x) in row" :key="`${x}-${y}`"
+                                     class="map-cell"
+                                     :style="{ backgroundColor: getBlockColor(cell) }"
+                                     :title="`(${x},${y}) ${terrainBlockTypes[cell]?.name || '未知'}`"
+                                     @mousedown.prevent="handleCellMouseDown(x, y)"
+                                     @mouseenter="handleCellMouseEnter(x, y)"
+                                     @mouseup="handleMouseUp">
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Road Overlay Layer -->
+                        <template v-for="(row, y) in roadData" :key="'road-' + y">
+                            <template v-for="(cell, x) in row" :key="'road-' + x + '-' + y">
+                                <!-- Render road cell if has road OR if in road/plan edit mode (for click/drag) -->
+                                <div v-if="cell !== '00' || mapEditMode === 'road' || mapEditMode === 'plan'"
+                                     class="road-overlay"
+                                     :class="{ 
+                                         'road-edit-passthrough': mapEditMode !== 'road' && mapEditMode !== 'plan' && mapEditMode !== 'view',
+                                         'road-edit-cell': (mapEditMode === 'road' || mapEditMode === 'plan') && cell === '00'
+                                     }"
+                                     :style="{
+                                         left: (x * 12) + 'px',
+                                         top: (y * 12) + 'px',
+                                         backgroundColor: cell !== '00' ? getRoadColor(cell) : 'transparent',
+                                         opacity: cell !== '00' ? (1 - getRoadOpacity(cell) / 100) : 1
+                                     }"
+                                     :title="cell !== '00' ? `(${x},${y}) ${roadBlockTypes[cell]?.name || '未知路网'}` : `(${x},${y}) 空`"
+                                     @mousedown.prevent="handleCellMouseDown(x, y)"
+                                     @mouseenter="handleCellMouseEnter(x, y)"
+                                     @mouseup="handleMouseUp">
+                                </div>
+                            </template>
+                        </template>
+                        
+                        <!-- Building Overlay Layer -->
+                        <template v-for="building in db.Building" :key="building.BuildingID">
+                            <div v-if="building.Position && getBuildingSize(building).l > 0 && !isBuildingBeingDragged(building)"
+                                 class="building-overlay"
+                                 :class="{
+                                     'building-edit-passthrough': mapEditMode === 'block' || mapEditMode === 'road' || mapEditMode === 'plan',
+                                     'building-draggable': mapEditMode === 'building',
+                                     'building-type-house': building.Type === 'House'
+                                 }"
+                                 :style="{
+                                     left: (parseInt(building.Position.split(',')[0]) * CELL_SIZE + 2) + 'px',
+                                     top: (parseInt(building.Position.split(',')[1]) * CELL_SIZE + 2) + 'px',
+                                     width: (getBuildingSize(building).l * CELL_SIZE - 4) + 'px',
+                                     height: (getBuildingSize(building).w * CELL_SIZE - 4) + 'px'
+                                 }"
+                                 :title="getBuildingTooltip(building)"
+                                 @click="handleBuildingClick(building, $event)">
+                                <span class="building-id">{{ getBuildingDisplayText(building) }}</span>
+                                <div v-if="building.Direction" class="building-direction-indicator" :style="getDirectionRotation(building.Direction)"></div>
+                            </div>
+                        </template>
+                        
+                        <!-- Dragged Building Preview -->
+                        <div v-if="draggedBuilding"
+                             class="building-overlay building-drag-preview"
+                             :style="getDragPreviewStyle(draggedBuilding)"
+                             :title="`放置: ${draggedBuilding.BuildingID}`">
+                            <span class="building-id">{{ getBuildingDisplayText(draggedBuilding) }}</span>
+                            <div v-if="draggedBuilding.Direction" class="building-direction-indicator" :style="getDirectionRotation(draggedBuilding.Direction)"></div>
+                        </div>
+                        
+                        <!-- Plan Rectangle Preview -->
+                        <div v-if="mapEditMode === 'plan' && planStartPos"
+                             class="plan-preview-rect"
+                             :style="getPlanPreviewStyle()">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Map Controls Panel -->
+                <div class="map-controls">
+                    <h5>地图控制</h5>
+                    
+                    <!-- Zoom Controls -->
+                    <div class="zoom-control">
+                        <h6>缩放</h6>
+                        <div class="zoom-buttons">
+                            <button class="btn btn-sm btn-outline-primary" @click="zoomOut" :disabled="mapZoom <= 25">-</button>
+                            <span class="zoom-value">{{ mapZoom }}%</span>
+                            <button class="btn btn-sm btn-outline-primary" @click="zoomIn" :disabled="mapZoom >= 300">+</button>
+                            <button class="btn btn-sm btn-outline-secondary" @click="resetZoom">重置</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mode Switch Dropdown -->
+                    <div class="mode-switch">
+                        <div class="dropdown">
+                            <button class="btn dropdown-toggle" 
+                                    :class="{
+                                        'btn-outline-secondary': mapEditMode === 'view',
+                                        'btn-warning': mapEditMode === 'block',
+                                        'btn-success': mapEditMode === 'road',
+                                        'btn-primary': mapEditMode === 'plan',
+                                        'btn-info': mapEditMode === 'building'
+                                    }"
+                                    type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false">
+                            {{ mapEditMode === 'view' ? '🔒 查看模式' : 
+                               mapEditMode === 'block' ? '🔓 地形编辑模式' :
+                               mapEditMode === 'road' ? '🛣️ 路网编辑模式' :
+                               mapEditMode === 'plan' ? '📍 规划编辑模式' :
+                               '🏠 建筑编辑模式' }}
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" :class="{ active: mapEditMode === 'view' }" @click="setMapEditMode('view')">
+                                🔒 查看模式
+                            </a></li>
+                            <li><a class="dropdown-item" :class="{ active: mapEditMode === 'block' }" @click="setMapEditMode('block')">
+                                🔓 地形编辑模式
+                            </a></li>
+                            <li><a class="dropdown-item" :class="{ active: mapEditMode === 'road' }" @click="setMapEditMode('road')">
+                                🛣️ 路网编辑模式
+                            </a></li>
+                            <li><a class="dropdown-item" :class="{ active: mapEditMode === 'plan' }" @click="setMapEditMode('plan')">
+                                📍 规划编辑模式
+                            </a></li>
+                            <li><a class="dropdown-item" :class="{ active: mapEditMode === 'building' }" @click="setMapEditMode('building')">
+                                🏠 建筑编辑模式
+                            </a></li>
+                        </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Brush Size (in block or road edit mode) -->
+                    <div class="brush-size-control" v-if="mapEditMode === 'block' || mapEditMode === 'road'">
+                        <h6>笔刷大小</h6>
+                        <div class="brush-size-input">
+                            <input type="range" v-model.number="brushSize" min="1" max="10" class="form-range">
+                            <span class="brush-size-value">{{ brushSize }} x {{ brushSize }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Block Type List (only in block edit mode) -->
+                    <div class="block-type-list" v-if="mapEditMode === 'block'">
+                        <h6>地形类型</h6>
+                        <div v-for="(blockInfo, code) in terrainBlockTypes" :key="code"
+                             class="block-type-item"
+                             :class="{ selected: selectedBlockType === code }"
+                             @click="selectBlockType(code)">
+                            <div class="block-color-preview" 
+                                 :style="{ backgroundColor: blockInfo.color }"></div>
+                            <div class="block-type-info">
+                                <div class="code">{{ code }}</div>
+                                <div class="name">{{ blockInfo.name }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Road Type List (only in road edit mode) -->
+                    <div class="block-type-list" v-if="mapEditMode === 'road'">
+                        <h6>路网类型</h6>
+                        
+                        <!-- Erase Button -->
+                        <div class="road-erase-btn mb-2">
+                            <button class="btn btn-sm w-100"
+                                    :class="roadEraseMode ? 'btn-danger' : 'btn-outline-danger'"
+                                    @click="toggleRoadEraseMode">
+                                🧹 擦除模式 {{ roadEraseMode ? '(已启用)' : '' }}
+                            </button>
+                        </div>
+                        
+                        <div v-for="(roadInfo, code) in roadBlockTypesFiltered" :key="code"
+                             class="block-type-item"
+                             :class="{ 
+                                 selected: selectedRoadType === code && !roadEraseMode,
+                                 disabled: !canAfford(roadInfo.buildCost) && !roadEraseMode && !infiniteMoney
+                             }"
+                             @click="selectRoadType(code)">
+                            <div class="block-color-preview" 
+                                 :style="{ backgroundColor: roadInfo.color === 'transparent' ? '#fff' : roadInfo.color, border: roadInfo.color === 'transparent' ? '2px dashed #ccc' : '1px solid #333' }"></div>
+                            <div class="block-type-info">
+                                <div class="code">{{ code }}</div>
+                                <div class="name">{{ roadInfo.name }}</div>
+                                <div class="cost" v-if="roadInfo.buildCost > 0">¥{{ roadInfo.buildCost }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Plan Type List (only in plan edit mode) -->
+                    <div class="block-type-list" v-if="mapEditMode === 'plan'">
+                        <h6>规划类型</h6>
+                        
+                        <div v-for="(planInfo, code) in planBlockTypesFiltered" :key="code"
+                             class="block-type-item"
+                             :class="{ selected: selectedPlanType === code }"
+                             @click="selectPlanType(code)">
+                            <div class="block-color-preview" 
+                                 :style="{ backgroundColor: planInfo.color, opacity: 1 - planInfo.opacity / 100 }"></div>
+                            <div class="block-type-info">
+                                <div class="code">{{ code }}</div>
+                                <div class="name">{{ planInfo.name }}</div>
+                            </div>
+                        </div>
+                        
+                        <p class="plan-mode-hint mt-2">提示：规划只能绘制在有路网的格子上</p>
+                        <p class="plan-mode-hint">拖动鼠标绘制矩形区域</p>
+                    </div>
+                    
+                    <!-- Building edit mode hint -->
+                    <div class="building-mode-indicator" v-if="mapEditMode === 'building'">
+                        <h6>🏠 建筑编辑模式</h6>
+                        <p v-if="!draggedBuilding">点击地图上的建筑以拾起</p>
+                        <p v-else>正在移动: <strong>{{ draggedBuilding.BuildingID }}</strong></p>
+                        <p v-if="draggedBuilding">在地图上点击以放置建筑</p>
+                    </div>
+                    
+                    <!-- View mode options -->
+                    <div class="view-mode-indicator" v-if="mapEditMode === 'view'">
+                        <h6>📺 视图选项</h6>
+                        <div class="view-mode-options">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="viewMode" id="viewNormal" 
+                                       value="normal" v-model="mapViewMode">
+                                <label class="form-check-label" for="viewNormal">
+                                    普通视图
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="viewMode" id="viewResident" 
+                                       value="resident" v-model="mapViewMode">
+                                <label class="form-check-label" for="viewResident">
+                                    居住者视图
+                                </label>
+                            </div>
+                        </div>
+                        <p class="view-mode-hint mt-2" v-if="mapViewMode === 'normal'">显示建筑ID</p>
+                        <p class="view-mode-hint mt-2" v-else-if="mapViewMode === 'resident'">显示住宅居住者姓氏</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Display Area -->
+            <div class="table-container-wrapper" v-else-if="!isResultTab">
+                <div class="table-container">
+                    <table class="table table-bordered table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th v-for="header in currentHeaders" :key="header.key">{{ header.label }}</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(row, index) in currentData" :key="index">
+                                <td v-for="header in currentHeaders" :key="header.key">
+                                    <template v-if="header.key.startsWith('NpcName_')">
+                                        {{ getNpcName(row['NpcID_' + header.key.split('_')[1]]) }}
+                                    </template>
+                                    <template v-else-if="header.key === 'Employees'">
+                                        <div style="max-width: 300px; word-wrap: break-word;">{{ row[header.key] }}</div>
+                                    </template>
+                                    <template v-else>
+                                        <input v-model="row[header.key]" :type="header.type || 'text'" :disabled="currentTab === 'CompanyJobs'">
+                                    </template>
+                                </td>
+                                <td v-if="currentTab !== 'CompanyJobs'"><button class="btn btn-danger btn-sm" @click="deleteRow(index)">删</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button class="btn btn-outline-primary btn-sm" v-if="currentTab !== 'CompanyJobs'" @click="addRow">+ 新增一行</button>
+                </div>
+            </div>
+
+            <!-- Result Matrix Display Area -->
+            <div class="table-container-wrapper" v-else>
+                <div class="table-container">
+                <!-- Job Application Intention Results -->
+                <div v-if="currentTab === 'jobResult'">
+                    <h5>职业应聘意向筛选 (横: 职业 / 纵: NPC) <span style="color:#666;font-size:12px">绿色背景=已投递</span></h5>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>NPC \ 职业</th>
+                                <th v-for="job in db.Job" :key="job.JobName">{{ job.JobName }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="npc in db.NPC" :key="npc.NpcID">
+                                <td>{{ npc.LastName }}{{ npc.FirstName }} ({{npc.NpcID}})</td>
+                                <td v-for="job in db.Job" :key="job.JobName" 
+                                    class="log-cell"
+                                    :class="{ 'log-accepted': isJobApplied(npc.NpcID, job.JobName) }">
+                                    {{ getJobLogValue(npc.NpcID, job.JobName) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Job Hiring Intention Results -->
+                <div v-if="currentTab === 'jobHireResult'">
+                    <h5>职业聘用意向得分 (横: 职业 / 纵: NPC)</h5>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>NPC \ 职业</th>
+                                <th v-for="job in db.Job" :key="job.JobName">{{ job.JobName }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="npc in db.NPC" :key="npc.NpcID">
+                                <td>{{ npc.LastName }}{{ npc.FirstName }} ({{npc.NpcID}})</td>
+                                <td v-for="job in db.Job" :key="job.JobName" 
+                                    class="log-cell"
+                                    :class="{ 'log-accepted': isJobAccepted(npc.NpcID, job.JobName) }">
+                                    {{ getJobHireLogValue(npc.NpcID, job.JobName) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- House Apply Score Results -->
+                <div v-if="currentTab === 'houseResult'">
+                    <h5>住宅申请得分 (横: 住宅 / 纵: 家庭) <span style="color:#666;font-size:12px">加粗=已接受Offer</span></h5>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>家庭 \ 住宅</th>
+                                <th v-for="house in db.House" :key="house.HouseID">{{ getHouseTypeName(house.StyleID) }} ({{house.HouseID}})</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="fam in db.Family" :key="fam.FamilyID">
+                                <td>{{ fam.LastName }}家 ({{fam.FamilyID}})</td>
+                                <td v-for="house in db.House" :key="house.HouseID" 
+                                    class="log-cell"
+                                    :class="{ 'log-accepted': isHouseAccepted(fam.FamilyID, house.HouseID) }">
+                                    <span :style="{ fontWeight: isHouseAccepted(fam.FamilyID, house.HouseID) ? 'bold' : 'normal' }">
+                                        {{ getHouseLogValue(fam.FamilyID, house.HouseID) }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- House Accept Score Results -->
+                <div v-if="currentTab === 'houseAcceptResult'">
+                    <h5>住宅接受申请得分 (横: 住宅 / 纵: 家庭)</h5>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>家庭 \ 住宅</th>
+                                <th v-for="house in db.House" :key="house.HouseID">{{ getHouseTypeName(house.StyleID) }} ({{house.HouseID}})</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="fam in db.Family" :key="fam.FamilyID">
+                                <td>{{ fam.LastName }}家 ({{fam.FamilyID}})</td>
+                                <td v-for="house in db.House" :key="house.HouseID" 
+                                    class="log-cell">
+                                    {{ getHouseAcceptLogValue(fam.FamilyID, house.HouseID) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Global Bottom Bar -->
+        <div class="col-md-12 global-bottom-bar">
+            <div class="bottom-bar-content">
+                <!-- Left: Player Data -->
+                <div class="bottom-bar-left">
+                    <div class="player-info-item">
+                        <span class="info-label">城市:</span>
+                        <span class="info-value">{{ playerCityName }}</span>
+                    </div>
+                    <div class="player-info-item">
+                        <span class="info-label">金钱:</span>
+                        <span class="info-value">{{ playerMoney }}</span>
+                    </div>
+                    <div class="player-info-item">
+                        <span class="info-label">日期:</span>
+                        <span class="info-value">{{ playerDate }}</span>
+                    </div>
+                    <div class="player-info-item">
+                        <span class="info-label">时间:</span>
+                        <span class="info-value">{{ playerTime }}</span>
+                    </div>
+                </div>
+
+                <!-- Middle: Tabbed Action Functions -->
+                <div class="bottom-bar-middle">
+                    <!-- Tab Navigation -->
+                    <div class="bottom-tabs">
+                        <button class="bottom-tab-btn" :class="{ active: activeBottomTab === 'family' }" @click="activeBottomTab = 'family'">家庭</button>
+                        <button class="bottom-tab-btn" :class="{ active: activeBottomTab === 'job' }" @click="activeBottomTab = 'job'">职业</button>
+                        <button class="bottom-tab-btn" :class="{ active: activeBottomTab === 'house' }" @click="activeBottomTab = 'house'">住宅</button>
+                        <button class="bottom-tab-btn" :class="{ active: activeBottomTab === 'finance' }" @click="activeBottomTab = 'finance'">财政</button>
+                    </div>
+                    
+                    <!-- Tab Content -->
+                    <div class="bottom-tab-content">
+                        <!-- Family Tab -->
+                        <div v-if="activeBottomTab === 'family'" class="tab-pane-bottom">
+                            <div class="action-group">
+                                <label>生成数量</label>
+                                <input type="number" v-model.number="params.familyCount" min="1">
+                                <button class="btn btn-sm btn-primary" @click="generateFamily">生成家庭</button>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" v-model="params.showFamilyLog">
+                                    日志
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Job Tab -->
+                        <div v-if="activeBottomTab === 'job'" class="tab-pane-bottom">
+                            <div class="action-group">
+                                <label>每人发简历数</label>
+                                <input type="number" v-model.number="params.resumeCount" min="1">
+                                <button class="btn btn-sm btn-success" @click="runJobHunt">获取工作</button>
+                            </div>
+                            <div class="action-group">
+                                <label>工作时长(小时)</label>
+                                <input type="number" v-model.number="params.jobHours" min="1">
+                                <button class="btn btn-sm btn-success" @click="collectJobIncome">获取工作收入</button>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" v-model="params.showJobLog">
+                                    日志
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- House Tab -->
+                        <div v-if="activeBottomTab === 'house'" class="tab-pane-bottom">
+                            <div class="action-group">
+                                <label>生成户数</label>
+                                <input type="number" v-model.number="params.houseGenerateCount" min="1">
+                                <button class="btn btn-sm btn-primary" @click="generateHouse">生成住宅</button>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" v-model="params.showHouseGenerateLog">
+                                    日志
+                                </label>
+                            </div>
+                            <div class="action-group">
+                                <label>每户申请数</label>
+                                <input type="number" v-model.number="params.houseApplyCount" min="1">
+                                <button class="btn btn-sm btn-info" @click="runHouseHunt">获取住宅</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Finance Tab -->
+                        <div v-if="activeBottomTab === 'finance'" class="tab-pane-bottom">
+                            <div class="action-group">
+                                <label>收税天数</label>
+                                <input type="number" v-model.number="params.taxDays" min="0">
+                                <label>小时数</label>
+                                <input type="number" v-model.number="params.taxHours" min="1">
+                                <button class="btn btn-sm btn-success" @click="collectHouseTax">收取住宅税金</button>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" v-model="params.showTaxLog">
+                                    日志
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Satisfaction Progress Bar -->
+                <div class="bottom-bar-right">
+                    <!-- Housing Demand Progress Bar -->
+                    <div class="housing-demand-container">
+                        <div class="housing-demand-label">住宅需求</div>
+                        <div class="housing-demand-progress-wrapper">
+                            <div class="housing-demand-progress-bar">
+                                <div class="housing-demand-progress-fill" :style="{ width: housingDemandProgress + '%' }"></div>
+                            </div>
+                            <div class="housing-demand-value">{{ housingDemand }}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Average Satisfaction Progress Bar -->
+                    <div class="satisfaction-container">
+                        <div class="satisfaction-label">平均满意值</div>
+                        <div class="satisfaction-progress-wrapper">
+                            <div class="satisfaction-progress-bar">
+                                <div class="satisfaction-progress-fill" :style="{ width: averageSatisfaction + '%' }"></div>
+                            </div>
+                            <div class="satisfaction-value">{{ averageSatisfaction.toFixed(1) }}%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Modules (order matters for dependencies) -->
+<script src="src/js/utils/helpers.js"></script>
+<script src="src/js/utils/Family.js"></script>
+<script src="src/js/utils/House.js"></script>
+<script src="src/js/utils/Company.js"></script>
+<script src="src/js/utils/financeUtils.js"></script>
+<!-- Config files -->
+<script src="src/js/config/constants.js"></script>
+<script src="src/js/config/tableConfig.js"></script>
+<script src="src/js/config/tableHeaders.js"></script>
+<script src="src/js/config/defaultData.js"></script>
+<!-- Modules -->
+<script src="src/js/modules/familyGenerator.js"></script>
+<script src="src/js/modules/houseGenerator.js"></script>
+<script src="src/js/modules/jobHunt.js"></script>
+<script src="src/js/modules/houseHunt.js"></script>
+<script src="src/js/modules/dayCycle.js"></script>
+<script src="src/js/modules/excelOps.js"></script>
+<!-- Composables -->
+<script src="src/js/composables/useLogSystem.js"></script>
+<script src="src/js/composables/useMoneyManager.js"></script>
+<script src="src/js/composables/useMapEditor.js"></script>
+<!-- Main App -->
+<script src="src/js/app.js"></script>
+
+</body>
+</html>

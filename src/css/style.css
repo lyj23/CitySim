@@ -1,0 +1,967 @@
+/* NPC Sim - Main Styles */
+
+body { 
+    font-size: 14px; 
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#app > .row {
+    flex: 1;
+    display: flex;
+    margin: 0;
+    min-height: 0;
+}
+
+/* Sidebar */
+.sidebar { 
+    height: calc(100vh - 160px);
+    overflow-y: auto; 
+    background: #343a40; 
+    color: white; 
+    padding: 15px;
+    flex: 0 0 16.666667%;
+    max-width: 16.666667%;
+}
+
+/* Main Content Area */
+.main-content { 
+    height: calc(100vh - 160px);
+    overflow-y: hidden; 
+    padding: 15px; 
+    display: flex; 
+    flex-direction: column;
+    flex: 0 0 83.333333%;
+    max-width: 83.333333%;
+}
+
+/* Navigation Tabs */
+.nav-tabs .nav-link { 
+    cursor: pointer; 
+}
+
+.nav-tabs { 
+    flex-shrink: 0; 
+}
+
+/* Sub Navigation Tabs */
+.nav-tabs-sub {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding-left: 20px;
+}
+
+.nav-tabs-sub .nav-link {
+    font-size: 13px;
+    padding: 6px 12px;
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+}
+
+.nav-tabs-sub .nav-link:hover {
+    color: #495057;
+    border-bottom-color: #adb5bd;
+}
+
+.nav-tabs-sub .nav-link.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    background: transparent;
+}
+
+/* Table Container Wrapper - for tables with bottom actions */
+.table-container-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* Table Container */
+.table-container { 
+    flex: 1; 
+    overflow: auto; 
+    background: white; 
+    padding: 10px; 
+    border-radius: 5px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    min-height: 0; /* Important for flex child to allow shrinking */
+}
+
+
+
+/* Table Styles */
+table { 
+    min-width: 100%; 
+}
+
+th { 
+    white-space: nowrap; 
+    background-color: #e9ecef; 
+    position: sticky; 
+    top: 0; 
+    z-index: 10; 
+}
+
+td input { 
+    width: 100%; 
+    border: none; 
+    background: transparent; 
+}
+
+td input:focus { 
+    outline: 2px solid #80bdff; 
+    background: #fff; 
+}
+
+/* Buttons */
+.btn-block { 
+    width: 100%; 
+    margin-bottom: 10px; 
+}
+
+/* Log Cells (Result Tables) */
+.log-cell { 
+    font-size: 12px; 
+    text-align: center; 
+}
+
+td.log-accepted {
+    font-weight: bold;
+    color: #28a745 !important;
+}
+
+/* ========== Global Bottom Bar ========== */
+.global-bottom-bar {
+    height: 160px;
+    min-height: 160px;
+    max-height: 160px;
+    background: #2c3e50;
+    border-top: 3px solid #3498db;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.bottom-bar-content {
+    display: flex;
+    height: 100%;
+    align-items: stretch;
+    padding: 0;
+    gap: 0;
+}
+
+/* Left: Player Data */
+.bottom-bar-left {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding: 0 20px;
+    border-right: 2px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.player-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.player-info-item .info-label {
+    color: #adb5bd;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.player-info-item .info-value {
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* Middle: Tabbed Action Functions */
+.bottom-bar-middle {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.bottom-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.bottom-tab-btn {
+    padding: 8px 20px;
+    background: transparent;
+    border: none;
+    color: #adb5bd;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+}
+
+.bottom-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.bottom-tab-btn.active {
+    color: #3498db;
+    border-bottom-color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.bottom-tab-content {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 15px;
+}
+
+.bottom-tab-content::-webkit-scrollbar {
+    height: 6px;
+}
+
+.bottom-tab-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.bottom-tab-content::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 3px;
+}
+
+.bottom-tab-content::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
+.tab-pane-bottom {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    height: 100%;
+}
+
+.tab-pane-bottom .action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 5px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.tab-pane-bottom .action-group label {
+    margin: 0;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+.tab-pane-bottom .action-group input[type="number"] {
+    width: 55px;
+    font-size: 12px;
+    padding: 3px 6px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.tab-pane-bottom .action-group .btn {
+    font-size: 12px;
+    padding: 3px 10px;
+    height: 26px;
+    line-height: 1.2;
+}
+
+.tab-pane-bottom .checkbox-label {
+    color: #e0e0e0;
+    font-size: 11px;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tab-pane-bottom .checkbox-label input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+}
+
+/* Right: Satisfaction Progress Bar */
+.bottom-bar-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 20px;
+    border-left: 2px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.2);
+    min-width: 200px;
+    gap: 8px;
+}
+
+/* Housing Demand Progress Bar */
+.housing-demand-container {
+    width: 100%;
+}
+
+.housing-demand-label {
+    color: #adb5bd;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.housing-demand-progress-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.housing-demand-progress-bar {
+    flex: 1;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 9px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.housing-demand-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #90EE90 0%, #7CCD7C 100%);
+    transition: width 0.3s ease;
+    border-radius: 9px;
+}
+
+.housing-demand-value {
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    min-width: 45px;
+    text-align: right;
+}
+
+/* Satisfaction Progress Bar */
+.satisfaction-container {
+    width: 100%;
+}
+
+.satisfaction-label {
+    color: #adb5bd;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.satisfaction-progress-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.satisfaction-progress-bar {
+    flex: 1;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 9px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.satisfaction-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e74c3c 0%, #f39c12 50%, #2ecc71 100%);
+    transition: width 0.3s ease;
+    border-radius: 9px;
+}
+
+.satisfaction-value {
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    min-width: 45px;
+    text-align: right;
+}
+
+/* Section Titles in Sidebar */
+.section-title { 
+    border-bottom: 1px solid #6c757d; 
+    padding-bottom: 5px; 
+    margin-bottom: 15px; 
+    margin-top: 20px; 
+    color: #adb5bd; 
+}
+
+/* ========== Map Editor Styles ========== */
+
+.map-editor-container {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 15px;
+}
+
+.map-wrapper {
+    flex: 1;
+    overflow: auto;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.map-grid {
+    display: grid;
+    grid-template-columns: repeat(100, 12px);
+    grid-template-rows: repeat(100, 12px);
+    gap: 0;
+    border: 1px solid #ccc;
+    width: fit-content;
+    user-select: none;
+}
+
+.map-cell {
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.map-cell:hover {
+    opacity: 0.5;
+    outline: 1px solid #333;
+}
+
+/* Map control panel */
+.map-controls {
+    width: 200px;
+    flex-shrink: 0;
+    background: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    overflow-y: auto;
+}
+
+.map-controls h5 {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+}
+
+.mode-switch {
+    margin-bottom: 15px;
+}
+
+.mode-switch .btn {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+/* Brush size control */
+.brush-size-control {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.brush-size-control h6 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.brush-size-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brush-size-input .form-range {
+    flex: 1;
+}
+
+.brush-size-value {
+    font-weight: bold;
+    color: #007bff;
+    min-width: 50px;
+    text-align: center;
+}
+
+.block-type-list {
+    margin-top: 15px;
+}
+
+.block-type-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.block-type-item:hover {
+    background-color: #f0f0f0;
+}
+
+.block-type-item.selected {
+    border-color: #007bff;
+    background-color: #e7f1ff;
+}
+
+.block-type-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.block-type-item.disabled:hover {
+    background-color: transparent;
+}
+
+.block-color-preview {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #333;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.block-type-info {
+    font-size: 13px;
+    flex: 1;
+}
+
+.block-type-info .code {
+    font-weight: bold;
+    color: #666;
+}
+
+.block-type-info .name {
+    color: #333;
+}
+
+.block-type-info .cost {
+    font-size: 11px;
+    color: #28a745;
+    font-weight: bold;
+}
+
+/* View mode indicator */
+.view-mode-indicator {
+    padding: 15px;
+    color: #666;
+    font-size: 14px;
+}
+
+.view-mode-indicator h6 {
+    margin-bottom: 12px;
+    color: #333;
+    font-weight: bold;
+}
+
+.view-mode-options {
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px 15px;
+}
+
+.view-mode-options .form-check {
+    margin-bottom: 8px;
+}
+
+.view-mode-options .form-check:last-child {
+    margin-bottom: 0;
+}
+
+.view-mode-options .form-check-label {
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.view-mode-hint {
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+}
+
+.road-mode-hint {
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+}
+
+.plan-mode-hint {
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+}
+
+/* Plan rectangle preview overlay */
+.plan-preview-rect {
+    position: absolute;
+    pointer-events: none;
+    z-index: 100;
+    box-sizing: border-box;
+}
+
+/* Make map grid passthrough for mouse events in road/plan edit mode */
+.map-grid-passthrough {
+    pointer-events: none;
+}
+
+.map-grid-passthrough .map-cell {
+    pointer-events: none;
+}
+
+/* ========== Road Overlay Styles ========== */
+
+.road-overlay {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    pointer-events: auto;
+    z-index: 2;
+}
+
+.road-overlay:hover {
+    opacity: 0.7;
+    outline: 1px solid #fff;
+}
+
+/* Make roads passthrough for mouse events in other edit modes */
+.road-overlay.road-edit-passthrough {
+    pointer-events: none;
+}
+
+/* Road edit mode: empty cells for click/drag painting */
+.road-overlay.road-edit-cell {
+    background-color: transparent !important;
+}
+
+/* Road erase button */
+.road-erase-btn {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.road-erase-btn .btn {
+    font-size: 13px;
+}
+
+/* ========== Building Overlay Styles ========== */
+
+.map-grid-container {
+    position: relative;
+    width: fit-content;
+    transition: transform 0.2s ease;
+}
+
+.building-overlay {
+    position: absolute;
+    background-color: rgba(33, 150, 243, 0.4);
+    border: 2px solid #1976D2;
+    box-sizing: border-box;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+}
+
+.building-overlay:hover {
+    background-color: rgba(33, 150, 243, 0.6);
+    border-color: #0D47A1;
+}
+
+/* House type building - 深绿色 */
+.building-overlay.building-type-house {
+    background-color: rgba(27, 94, 32, 0.4);
+    border: 2px solid #1B5E20;
+}
+
+.building-overlay.building-type-house:hover {
+    background-color: rgba(27, 94, 32, 0.6);
+    border-color: #0D3D0A;
+}
+
+
+/* Edit mode: make buildings passthrough for mouse events */
+.building-overlay.building-edit-passthrough {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.building-id {
+    font-size: 6px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 3px black;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    z-index: 2;
+}
+
+/* Building direction indicator triangle */
+.building-direction-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 12px solid #1e00ff;
+    transform-origin: center center;
+    pointer-events: none;
+    opacity: 0.7;
+    z-index: 1;
+}
+/* Building draggable state */
+.building-overlay.building-draggable {
+    cursor: grab;
+    border-style: dashed;
+}
+
+.building-overlay.building-draggable:hover {
+    background-color: rgba(255, 152, 0, 0.5);
+    border-color: #E65100;
+}
+
+/* Building drag preview */
+.building-overlay.building-drag-preview {
+    background-color: rgba(76, 175, 80, 0.5);
+    border: 2px dashed #2E7D32;
+    pointer-events: none;
+    z-index: 10;
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+    from { opacity: 0.4; }
+    to { opacity: 0.8; }
+}
+
+/* Mode switch dropdown */
+.mode-switch .dropdown {
+    width: 100%;
+}
+
+.mode-switch .dropdown-toggle {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mode-switch .dropdown-menu {
+    width: 100%;
+}
+
+.mode-switch .dropdown-item {
+    cursor: pointer;
+}
+
+.mode-switch .dropdown-item.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.mode-switch .dropdown-item:hover:not(.active) {
+    background-color: #f0f0f0;
+}
+
+/* Zoom control */
+.zoom-control {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.zoom-control h6 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.zoom-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zoom-buttons .btn {
+    font-size: 14px;
+    padding: 4px 10px;
+}
+
+.zoom-value {
+    font-weight: bold;
+    color: #007bff;
+    min-width: 55px;
+    text-align: center;
+}
+
+/* Building edit mode indicator */
+.building-mode-indicator {
+    text-align: center;
+    padding: 15px;
+    color: #0288D1;
+    font-size: 14px;
+    background-color: #E1F5FE;
+    border-radius: 5px;
+    margin-top: 15px;
+}
+
+.building-mode-indicator h6 {
+    margin-bottom: 10px;
+    color: #01579B;
+}
+
+.building-mode-indicator p {
+    margin-bottom: 5px;
+}
+
+
+
+/* ========== Checkbox Label Style ========== */
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #495057;
+    user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 5px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.checkbox-label:hover {
+    color: #212529;
+}
+
+/* ========== Log Container Styles ========== */
+.log-container {
+    margin-top: 15px;
+    background: #2c3e50;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid #495057;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #1a252f;
+    border-bottom: 1px solid #495057;
+}
+
+.log-header span {
+    font-size: 13px;
+    font-weight: bold;
+    color: #adb5bd;
+}
+
+.log-header .btn {
+    padding: 2px 8px;
+    font-size: 11px;
+}
+
+.log-messages {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    background: #1e2a35;
+}
+
+.log-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.log-messages::-webkit-scrollbar-track {
+    background: #1a252f;
+}
+
+.log-messages::-webkit-scrollbar-thumb {
+    background: #495057;
+    border-radius: 3px;
+}
+
+.log-messages::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+.log-empty {
+    text-align: center;
+    color: #6c757d;
+    font-size: 12px;
+    padding: 20px;
+    font-style: italic;
+}
+
+.log-item {
+    display: flex;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 11px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.log-item:last-child {
+    border-bottom: none;
+}
+
+.log-time {
+    color: #6c757d;
+    font-family: monospace;
+    flex-shrink: 0;
+    min-width: 70px;
+}
+
+.log-text {
+    color: #e9ecef;
+    flex: 1;
+    word-break: break-word;
+}
