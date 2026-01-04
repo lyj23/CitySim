@@ -1,0 +1,15 @@
+{
+  "name": "citysim",
+  "version": "1.0.0",
+  "description": "NPC 数值动态模拟系统",
+  "main": "index.html",
+  "scripts": {
+    "convert:excel": "node scripts/excelToJson.js"
+  },
+  "keywords": ["city-simulation", "npc"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

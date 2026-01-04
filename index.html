@@ -34,6 +34,7 @@
                 <input type="file" class="form-control" @change="importExcel" accept=".xlsx, .xls">
             </div>
             <button class="btn btn-secondary btn-block" @click="exportExcel">导出当前页签Excel</button>
+            <button class="btn btn-info btn-block mt-2" @click="loadConfigJson">加载配置JSON</button>
             
             <div class="section-title">批量操作</div>
             <div class="mb-2">
@@ -598,6 +599,7 @@
 
 <!-- JavaScript Modules (order matters for dependencies) -->
 <script src="src/js/utils/helpers.js"></script>
+<script src="src/js/utils/jsonLoader.js"></script>
 <script src="src/js/utils/Family.js"></script>
 <script src="src/js/utils/House.js"></script>
 <script src="src/js/utils/Company.js"></script>

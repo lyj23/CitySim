@@ -553,6 +553,40 @@ const app = createApp({
             alert(`已导出 ${count} 个表格`);
         }
 
+        // 加载配置JSON数据
+        async function handleLoadConfigJson() {
+            if (!confirm('确定要从config/json目录加载配置数据吗？\n这将覆盖当前数据库中的所有配置表数据。')) {
+                return;
+            }
+
+            try {
+                addLog('开始加载配置JSON数据...');
+                const results = await loadAllConfigJson(db);
+                
+                if (results.success.length > 0) {
+                    addLog(`成功加载 ${results.success.length} 个配置表：`);
+                    results.success.forEach(item => addLog(`  ✓ ${item}`));
+                }
+                
+                if (results.failed.length > 0) {
+                    addLog(`失败 ${results.failed.length} 个配置表：`);
+                    results.failed.forEach(item => addLog(`  ✗ ${item}`));
+                }
+                
+                addLog('配置JSON加载完成！');
+                alert(`配置加载完成！\n\n成功: ${results.success.length} 个\n失败: ${results.failed.length} 个`);
+            } catch (error) {
+                console.error('加载配置JSON失败:', error);
+                addLog(`加载配置JSON失败: ${error.message}`);
+                
+                let errorMessage = error.message;
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += '\n\n提示：\n本地开发时需要使用本地服务器（如 VSCode 的 Live Server 扩展）。\n在 GitHub Pages 上托管时可以正常工作。\n\n或者直接使用"导入Excel"功能导入数据。';
+                }
+                alert(`加载配置JSON失败:\n\n${errorMessage}`);
+            }
+        }
+
 
         // --- 表格操作 ---
         function addRow() {
@@ -663,6 +697,7 @@ const app = createApp({
             importExcel: handleImportExcel,
             importAllExcel: handleImportAllExcel,
             exportAllExcel: handleExportAllExcel,
+            loadConfigJson: handleLoadConfigJson,
             addRow,
             deleteRow,
             
